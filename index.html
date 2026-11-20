@@ -15,6 +15,8 @@
 // ============================================================
 const SUPABASE_URL = 'https://ujinmvuodyvgatzdnvjz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaW5tdnVvZHl2Z2F0emRudmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMzI2MjksImV4cCI6MjExMDcwODYyOX0.lPOiuRpkk4sHzq1wNuggWtaNHi73rKPoG45mrPfwVuk';
+// Coordinator login: the email of the user you created in Supabase > Authentication > Users
+const COORD_EMAIL = 'PASTE_COORDINATOR_ACCOUNT_EMAIL';
 // ============================================================
 </script>
 <style>
@@ -336,13 +338,15 @@ const LOC_STYLES={'Santa Monica':{bg:'#FEF3C7',text:'#92400E'},'Westlake Village
 // ============================================================
 //  Supabase REST helpers (no SDK needed)
 // ============================================================
+let coordToken = null;   // set after the coordinator signs in; never stored in the page
 async function sbFetch(path, opts={}) {
   const url = SUPABASE_URL + '/rest/v1/' + path;
+  const { asCoord, ...fetchOpts } = opts;
   const res = await fetch(url, {
-    ...opts,
+    ...fetchOpts,
     headers: {
       'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + ((opts.asCoord && coordToken) || SUPABASE_ANON_KEY),
       'Content-Type': 'application/json',
       'Prefer': opts.prefer || 'return=minimal',
       ...(opts.headers||{})
@@ -558,11 +562,16 @@ document.getElementById('btnSubmitNote').addEventListener('click',async()=>{
 // ============================================================
 //  Coordinator view
 // ============================================================
-const COORD_PW_HASH = 'db4b87c060f190ed65416288b8940ca326059e46c08e2370dc442f8bb19f19de'; // sha256 of 'Uclacewm'
-
-async function sha256(str){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+// Supabase checks the password; it is never stored in this page.
+async function coordSignIn(password){
+  const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: COORD_EMAIL, password })
+  });
+  if (!res.ok) return null;
+  const data = await res.json().catch(()=>null);
+  return data && data.access_token ? data.access_token : null;
 }
 
 function openCoordModal(){
@@ -578,18 +587,29 @@ document.getElementById('coordPwInput').addEventListener('keydown',e=>{if(e.key=
 
 async function tryUnlock(){
   const val=document.getElementById('coordPwInput').value;
-  const hash=await sha256(val);
-  if(hash===COORD_PW_HASH){
+  if(!val)return;
+  const err=document.getElementById('pwError');
+  if(COORD_EMAIL.indexOf('PASTE')===0){ err.textContent='Coordinator login is not set up yet (COORD_EMAIL at the top of this file).'; err.classList.add('visible'); return; }
+  const btn=document.querySelector('.btn-unlock-coord');
+  btn.disabled=true; btn.textContent='Checking…';
+  const token=await coordSignIn(val);
+  btn.disabled=false; btn.textContent='Unlock';
+  if(token){
+    coordToken=token;
     closeCoordModal();
     document.getElementById('coordPanel').classList.add('visible');
     document.getElementById('coordPanel').scrollIntoView({behavior:'smooth',block:'start'});
     loadCoordData();
   } else {
-    document.getElementById('pwError').classList.add('visible');
+    err.textContent='Incorrect password. Try again.';
+    err.classList.add('visible');
     document.getElementById('coordPwInput').select();
   }
 }
 function lockCoord(){
+  coordToken=null;
+  document.getElementById('coordTabNotes').innerHTML='<div class="coord-empty">Loading…</div>';
+  document.getElementById('coordTabChanges').innerHTML='<div class="coord-empty">Loading…</div>';
   document.getElementById('coordPanel').classList.remove('visible');
 }
 function switchCoordTab(tab, el){
@@ -602,7 +622,7 @@ function switchCoordTab(tab, el){
 async function loadCoordData(){
   // Load submitted notes
   try{
-    const notes=await sbFetch('notes?select=name,note,submitted_at&order=submitted_at.desc', {headers:{'Prefer':'return=representation'}});
+    const notes=await sbFetch('notes?select=name,note,submitted_at&order=submitted_at.desc', {asCoord:true, headers:{'Prefer':'return=representation'}});
     const wrap=document.getElementById('coordTabNotes');
     if(!notes||notes.length===0){wrap.innerHTML='<div class="coord-empty">No notes submitted yet.</div>';return;}
     wrap.innerHTML=notes.map(n=>`
