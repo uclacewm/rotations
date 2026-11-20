@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Provider Availability</title>
+<style>
+/* ============================================================
+   CONFIGURATION — paste your Supabase credentials here
+   ============================================================ */
+</style>
+<script>
+// ============================================================
+//  PASTE YOUR SUPABASE CREDENTIALS HERE
+// ============================================================
+const SUPABASE_URL = 'https://ujinmvuodyvgatzdnvjz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaW5tdnVvZHl2Z2F0emRudmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMzI2MjksImV4cCI6MjExMDcwODYyOX0.lPOiuRpkk4sHzq1wNuggWtaNHi73rKPoG45mrPfwVuk';
+// ============================================================
+</script>
+<style>
+  :root {
+    --midnight: #003B5C;
+    --ucla-blue: #2774AE;
+    --sand: #EFEDE5;
+    --yellow: #FAEDBD;
+    --dolphin: #656C71;
+    --bg: #f5f5f7;
+    --fg: #1a1a2e;
+    --surface: #fff;
+    --border: #e5e7eb;
+    --border-soft: #C9CFD4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --fg: #e8eaf0;
+      --surface: #1c1f26;
+      --border: #2d3141;
+      --border-soft: #3a3f52;
+      --sand: #1e2130;
+      color-scheme: dark;
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--fg);
+    background: var(--bg);
+    min-height: 100vh;
+  }
+  .page-header {
+    background: var(--surface);
+    padding: 18px 24px 16px;
+    border-bottom: 3px solid var(--midnight);
+  }
+  .page-header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .5px; line-height: 1; }
+  .title-dark { color: var(--midnight); }
+  .title-light { color: var(--ucla-blue); }
+  .page-header p { margin: 6px 0 0; font-size: 11.5px; color: var(--dolphin); }
+
+  .selector-bar {
+    background: var(--sand);
+    border-bottom: 1px solid var(--border-soft);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .selector-bar label { font-weight: 600; color: var(--midnight); font-size: 13px; }
+  .selector-bar select {
+    padding: 7px 32px 7px 12px;
+    border: 1.5px solid #9ca3af;
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--fg);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23003B5C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    min-width: 200px;
+  }
+  .selector-bar select:focus { outline: 2px solid var(--ucla-blue); border-color: var(--ucla-blue); }
+
+  .editing-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: #DCFCE7;
+    color: #15803D;
+    border: 1px solid #86EFAC;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .editing-pill.visible { display: flex; }
+  .editing-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; }
+
+  .toast {
+    position: fixed; top: 24px; right: 24px;
+    background: var(--midnight); color: #fff;
+    padding: 12px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    transform: translateY(-8px); opacity: 0;
+    transition: all .25s; pointer-events: none; z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: #15803D; }
+  .toast.error { background: #BE123C; }
+
+  .grid-wrap { padding: 20px 24px 24px; }
+
+  .notes-section { margin: 0 24px 100px; border: 1px solid var(--border-soft); border-radius: 6px; overflow: hidden; }
+  .notes-header { background: var(--sand); padding: 9px 14px; font-size: 12px; font-weight: 700; color: var(--midnight); border-bottom: 1px solid var(--border-soft); }
+  .notes-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+  .notes-loc-title { font-size: 10px; font-weight: 700; color: var(--ucla-blue); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .notes-item { font-size: 11.5px; color: var(--fg); line-height: 1.5; padding-left: 12px; position: relative; opacity: .8; }
+  .notes-item::before { content: '·'; position: absolute; left: 2px; color: #9ca3af; }
+
+  .loc-section { margin-bottom: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .loc-header { display: grid; grid-template-columns: 180px repeat(5,1fr); }
+  .loc-title { padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; display: flex; align-items: center; }
+  .day-col-header { padding: 8px 6px; text-align: center; font-size: 11px; font-weight: 600; border-left: 1px solid rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; }
+  .provider-rows { border: 1px solid var(--border); border-top: none; background: var(--surface); }
+  .provider-row { display: grid; grid-template-columns: 180px repeat(5,1fr); border-bottom: 1px solid #f3f4f6; }
+  .provider-row:last-child { border-bottom: none; }
+  .provider-row.is-me { background: #EFF6FF; }
+  .provider-row.is-me:hover { background: #DBEAFE; }
+  .provider-name { padding: 6px 10px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--border); }
+  .prov-name-line { font-weight: 600; font-size: 12px; color: var(--fg); }
+  .prov-cred { font-size: 10px; color: var(--dolphin); margin-top: 1px; display: flex; align-items: center; gap: 4px; }
+  .prov-tier-badge { font-size: 9px; padding: 1px 5px; border-radius: 10px; font-weight: 600; }
+  .tier-fellow { background: #FEF3C7; color: #92400E; }
+  .tier-lac { background: #F3E8FF; color: #6B21A8; }
+  .day-cell { padding: 5px 4px; border-left: 1px solid #f3f4f6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 36px; }
+  .no-avail { color: #d1d5db; font-size: 11px; }
+  .avail-slot { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+  .avail-slot.pref { background: #FEF9C3; color: #854D0E; border-color: #FDE047; }
+  .blocked-cell { grid-column: span 5; background: #FFF1F2; border-left: none; }
+  .blocked-pill { font-size: 10px; font-weight: 600; color: #BE123C; display: flex; align-items: center; gap: 5px; }
+  .slot-btn { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1.5px solid; cursor: pointer; transition: all .12s; background: var(--surface); color: #9ca3af; border-color: #d1d5db; }
+  .slot-btn.on { background: #DCFCE7; color: #15803D; border-color: #86EFAC; }
+  .slot-btn.pref-on { background: #FEF9C3; color: #854D0E; border-color: #FDE047; }
+  .slot-btn.pending { opacity: .6; cursor: wait; }
+  .slot-btn:hover:not(.pending) { opacity: .8; transform: scale(1.05); }
+  .pref-toggle { font-size: 9px; color: #9ca3af; cursor: pointer; text-decoration: underline; margin-top: 1px; white-space: nowrap; }
+  .pref-toggle:hover { color: var(--ucla-blue); }
+  .last-updated { font-size: 9px; color: #9ca3af; margin-top: 2px; text-align: center; }
+
+  .legend { display: flex; gap: 14px; align-items: center; padding: 8px 24px; background: var(--sand); border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--fg); }
+  .legend-swatch { width: 22px; height: 14px; border-radius: 6px; border: 1px solid rgba(0,0,0,.1); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  .provider-note-box { display: none; margin: 0 24px 16px; border: 1.5px solid var(--ucla-blue); border-radius: 8px; overflow: hidden; }
+  .provider-note-box.visible { display: block; }
+  .note-box-header { background: var(--midnight); color: #fff; padding: 9px 14px; font-size: 12px; font-weight: 700; }
+  .note-box-header span { opacity: .75; font-weight: 400; margin-left: 6px; }
+  .note-box-body { background: var(--surface); padding: 12px 14px; }
+  .note-box-body textarea { width: 100%; min-height: 72px; border: 1.5px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; color: var(--fg); background: var(--surface); resize: vertical; outline: none; box-sizing: border-box; }
+  .note-box-body textarea:focus { border-color: var(--ucla-blue); }
+  .btn-submit-note { background: var(--midnight); color: #fff; border: none; border-radius: 6px; padding: 7px 18px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-submit-note:hover:not(:disabled) { background: var(--ucla-blue); }
+  .btn-submit-note:disabled { background: #9ca3af; cursor: default; }
+
+  .save-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: var(--midnight); color: #fff; padding: 8px 24px; font-size: 12px; font-weight: 600; text-align: center; z-index: 200; }
+  .save-banner.visible { display: block; }
+
+  .loading-state { padding: 48px 24px; text-align: center; color: var(--dolphin); font-size: 13px; }
+  .error-banner { background: #FFF1F2; border: 1px solid #FECDD3; border-radius: 8px; margin: 16px 24px; padding: 12px 16px; font-size: 12px; color: #BE123C; display: none; }
+  .error-banner.visible { display: block; }
+
+  @media (max-width: 700px) {
+    .loc-header, .provider-row { grid-template-columns: 120px repeat(5,1fr); }
+    .loc-title, .provider-name { padding: 6px 8px; }
+    .day-cell { padding: 4px 2px; }
+    .slot-btn { padding: 2px 5px; font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1><span class="title-dark">PROVIDER</span> <span class="title-light">AVAILABILITY</span></h1>
+  <p>Select your name to update your availability. Changes save for everyone instantly.</p>
+</div>
+
+<div class="legend">
+  <span style="font-size:11px;font-weight:600;color:#374151;margin-right:4px;">Legend:</span>
+  <div class="legend-item"><div class="legend-swatch" style="background:#DCFCE7;border-color:#86EFAC;color:#15803D">AM</div> Available</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#FEF9C3;border-color:#FDE047;color:#854D0E">AM</div> Preferred</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#fff;border-color:#d1d5db;color:#9ca3af">AM</div> Not available</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#FFF1F2;border-color:#FECDD3;color:#BE123C">⚠</div> Blocked</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#FEF3C7;border-color:#FCD34D;color:#92400E">F</div> Fellow</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#F3E8FF;border-color:#D8B4FE;color:#6B21A8">Ac</div> Acupuncturist</div>
+</div>
+
+<div class="selector-bar">
+  <label for="nameSelect">I am:</label>
+  <select id="nameSelect"><option value="">— Select your name —</option></select>
+  <div class="editing-pill" id="editingPill"><div class="dot"></div><span id="editingName"></span></div>
+</div>
+
+<div id="providerNoteBox" class="provider-note-box">
+  <div class="note-box-header">📝 Leave a Note <span id="noteBoxSubtitle"></span></div>
+  <div class="note-box-body">
+    <textarea id="providerNoteText" placeholder="Any scheduling notes or constraints for the coordinator…"></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button id="btnSubmitNote" class="btn-submit-note" disabled>Submit Note</button>
+    </div>
+  </div>
+</div>
+
+<div class="error-banner" id="errorBanner"></div>
+<div id="gridWrap" class="grid-wrap"><div class="loading-state">Loading availability…</div></div>
+
+<div class="notes-section">
+  <div class="notes-header">Provider Notes &amp; Constraints</div>
+  <div class="notes-body">
+    <div><div class="notes-loc-title">Santa Monica</div>
+      <div class="notes-item">Pranav Sharma, MD — do not schedule until Jan 2027</div>
+      <div class="notes-item">Ka-Kit Hui, MD — available Tue &amp; Thu PM only</div>
+      <div class="notes-item">Xiuling Ma, LAc — Thu AM · fellowship didactics dates only</div>
+      <div class="notes-item">Irene Wang, MD — available Fri AM only</div>
+    </div>
+    <div><div class="notes-loc-title">WW Extensivist</div>
+      <div class="notes-item">Payam Bokhoor, MD — Mon AM only at WW Extensivist; also available Tue–Fri at Santa Monica</div>
+    </div>
+    <div><div class="notes-loc-title">Westlake Village</div>
+      <div class="notes-item">Annie Zhang, MD — Fri AM only</div>
+      <div class="notes-item">Calvin Fong, MD — Fri PM only</div>
+      <div class="notes-item">Jade March, MD — Fri PM only</div>
+    </div>
+    <div><div class="notes-loc-title">Torrance</div>
+      <div class="notes-item">Lawrence Taw, MD — BLOCKED until further notice (historical only; last session 9/18/2026)</div>
+      <div class="notes-item">Sungjin Kuon, DO — BLOCKED until further notice (historical only; last session 9/18/2026)</div>
+    </div>
+    <div><div class="notes-loc-title">RRUMC Inpatient</div>
+      <div class="notes-item">Andrew Shubov, MD — MS4, Residents, Fellows, Cherng Scholars · confirm availability each time · max ~2 sessions/month</div>
+      <div class="notes-item">Tracey Tan, MD — RRUMC · starting Feb 2027 · Wed PM preferred · 1–2 sessions/month · confirm before booking</div>
+    </div>
+    <div><div class="notes-loc-title">SMMC Inpatient</div>
+      <div class="notes-item">Tracey Tan, MD — SMMC · starting Feb 2027 · Wed PM preferred · 1–2 sessions/month · confirm before booking · also covers RRUMC</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="save-banner" id="saveBanner">💾 Saving…</div>
+
+<script>
+// ============================================================
+//  Provider data
+// ============================================================
+const PROVIDERS={mon:[{name:'Alan Chu',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Ed Hui',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Katie Hu',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Mary Fok',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Sara Ptasnik',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Pranav Sharma',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Payam Bokhoor',cred:'MD',tier:'md',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'WW Extensivist'}],tue:[{name:'Lawrence Rolle',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Ed Hui',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Ka-Kit Hui',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Santa Monica'},{name:'Katie Hu',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Mary Fok',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Payam Bokhoor',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Sara Ptasnik',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Andrew Shubov',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'RRUMC Inpatient'},{name:'Ricky Chang',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Anne Wang',cred:'LAc',tier:'lac',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Ping Wang',cred:'LAc',tier:'lac',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Sallie Hong',cred:'LAc',tier:'lac',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'}],wed:[{name:'Alan Chu',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Santa Monica'},{name:'Ed Hui',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Emily Chang',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Katie Hu',cred:'MD',tier:'md',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Ricky Chang',cred:'MD',tier:'md',pref:{am:true,pm:true},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Pranav Sharma',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Andrew Shubov',cred:'MD',tier:'md',pref:{am:true,pm:false},avail:{am:true,pm:true},loc:'RRUMC Inpatient'},{name:'Tracey Tan',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'RRUMC Inpatient'},{name:'Sara Ptasnik',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Anne Wang',cred:'LAc',tier:'lac',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Sandi Chiu',cred:'LAc',tier:'lac',pref:{am:true,pm:true},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Sallie Hong',cred:'LAc',tier:'lac',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'}],thu:[{name:'Lawrence Rolle',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Lorien Ahn',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Ed Hui',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Santa Monica'},{name:'Emily Chang',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Ka-Kit Hui',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Santa Monica'},{name:'Katie Hu',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Mary Fok',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Payam Bokhoor',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Pranav Sharma',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:false,pm:true},loc:'Santa Monica'},{name:'Sara Ptasnik',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Xiuling Ma',cred:'LAc',tier:'lac',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Sandi Chiu',cred:'LAc',tier:'lac',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Shawn Yang',cred:'LAc',tier:'lac',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Santa Monica'}],fri:[{name:'Lorien Ahn',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Alan Chu',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Emily Chang',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Irene Wang',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Katie Hu',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Payam Bokhoor',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:true,pm:true},loc:'Santa Monica'},{name:'Pranav Sharma',cred:'MD',tier:'fellow',pref:{am:false,pm:false},avail:{am:false,pm:true},loc:'Santa Monica'},{name:'Annie Zhang',cred:'MD',tier:'md',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Westlake Village'},{name:'Calvin Fong',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Westlake Village'},{name:'Jade March',cred:'MD',tier:'md',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Westlake Village'},{name:'Lawrence Taw',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:false},loc:'Torrance'},{name:'Sungjin Kuon',cred:'DO',tier:'md',pref:{am:false,pm:false},avail:{am:false,pm:true},loc:'Torrance'},{name:'Ed Hui',cred:'MD',tier:'md',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Annie Law',cred:'LAc',tier:'lac',pref:{am:false,pm:false},avail:{am:true,pm:true},loc:'CSC Health'},{name:'Sandi Chiu',cred:'LAc',tier:'lac',pref:{am:true,pm:false},avail:{am:true,pm:false},loc:'Santa Monica'},{name:'Shawn Yang',cred:'LAc',tier:'lac',pref:{am:false,pm:true},avail:{am:false,pm:true},loc:'Santa Monica'}]};
+const BLOCKED_UNTIL={'Pranav Sharma':'2027-01-01','Lawrence Taw':'2099-12-31','Sungjin Kuon':'2099-12-31','Tracey Tan':'2027-02-01'};
+const BLOCKED_LABEL={'Lawrence Taw':'blocked until further notice','Sungjin Kuon':'blocked until further notice','Tracey Tan':'starting Feb 2027'};
+const LOC_ORDER=['Santa Monica','Westlake Village','Torrance','WW Extensivist','SMMC Inpatient','RRUMC Inpatient','CSC Health'];
+const DAYS=['mon','tue','wed','thu','fri'];
+const DAY_LABELS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const LOC_STYLES={'Santa Monica':{bg:'#FEF3C7',text:'#92400E'},'Westlake Village':{bg:'#D1FAE5',text:'#065F46'},'Torrance':{bg:'#EDE9FE',text:'#5B21B6'},'WW Extensivist':{bg:'#DBEAFE',text:'#1E40AF'},'SMMC Inpatient':{bg:'#FCE7F3',text:'#9D174D'},'RRUMC Inpatient':{bg:'#FFEDD5',text:'#9A3412'},'CSC Health':{bg:'#CCFBF1',text:'#0F766E'}};
+
+// ============================================================
+//  Supabase REST helpers (no SDK needed)
+// ============================================================
+async function sbFetch(path, opts={}) {
+  const url = SUPABASE_URL + '/rest/v1/' + path;
+  const res = await fetch(url, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=minimal',
+      ...(opts.headers||{})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(()=>'');
+    throw new Error(`Supabase ${res.status}: ${err}`);
+  }
+  const ct = res.headers.get('content-type')||'';
+  if (ct.includes('json') && res.status !== 204) return res.json();
+  return null;
+}
+
+async function loadOverrides() {
+  const rows = await sbFetch('overrides?select=key,avail,pref,updated_by,updated_at', {
+    headers: { 'Prefer': 'return=representation' }
+  });
+  const out = {};
+  for (const r of (rows||[])) {
+    out[r.key] = { avail: r.avail, pref: r.pref, _updatedBy: r.updated_by, _updatedAt: r.updated_at };
+  }
+  return out;
+}
+
+async function upsertOverride(key, avail, pref, updatedBy) {
+  await sbFetch('overrides', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates',
+    body: JSON.stringify({ key, avail, pref, updated_by: updatedBy, updated_at: Date.now() })
+  });
+}
+
+async function insertNote(name, note) {
+  await sbFetch('notes', {
+    method: 'POST',
+    body: JSON.stringify({ id: Date.now(), name, note, submitted_at: Date.now() })
+  });
+}
+
+// ============================================================
+//  App state
+// ============================================================
+function isBlocked(n){const d=BLOCKED_UNTIL[n];return d&&new Date()<new Date(d);}
+
+const pm={};
+for(const[day,arr]of Object.entries(PROVIDERS)){
+  for(const p of arr){
+    if(!pm[p.loc])pm[p.loc]={};
+    if(!pm[p.loc][p.name])pm[p.loc][p.name]={cred:p.cred,tier:p.tier,days:{}};
+    if(!pm[p.loc][p.name].days[day])pm[p.loc][p.name].days[day]={avail:{...p.avail},pref:{...p.pref}};
+  }
+}
+const allNames=[...new Set(Object.values(pm).flatMap(l=>Object.keys(l)))].sort();
+function sortP(e){const o={fellow:0,md:1,lac:2};return e.sort((a,b)=>{const ta=o[a[1].tier]??3,tb=o[b[1].tier]??3;return ta!==tb?ta-tb:a[0].localeCompare(b[0]);});}
+
+let overrides={}, selName='', pending={}, isSaving=false;
+let saveTimer=null;
+
+// Populate dropdown
+const sel=document.getElementById('nameSelect');
+allNames.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+sel.addEventListener('change',()=>{
+  selName=sel.value; pending={};
+  document.getElementById('editingPill').classList.toggle('visible',!!selName);
+  document.getElementById('editingName').textContent=selName||'';
+  const nb=document.getElementById('providerNoteBox');
+  if(selName){
+    nb.classList.add('visible');
+    document.getElementById('noteBoxSubtitle').textContent='— '+selName;
+    document.getElementById('providerNoteText').value='';
+    document.getElementById('btnSubmitNote').disabled=true;
+  } else nb.classList.remove('visible');
+  renderGrid();
+  if(selName){const r=document.querySelector(`.provider-row[data-name="${CSS.escape(selName)}"]`);if(r)r.scrollIntoView({behavior:'smooth',block:'center'});}
+});
+
+function showToast(m,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=m; t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>{t.className='toast';},3000);
+}
+function mkey(n,l,d,s){return`${n}||${l}|${d}|${s}`;}
+function getVal(n,l,d,s){
+  const k=mkey(n,l,d,s);
+  if(pending[k]!==undefined)return pending[k];
+  if(overrides[k]!==undefined)return overrides[k];
+  const dd=pm[l]?.[n]?.days?.[d];
+  if(!dd)return{avail:false,pref:false};
+  return{avail:dd.avail[s],pref:dd.pref[s]};
+}
+function esc(s){return String(s).replace(/'/g,"\\'")}
+function esc2(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function timeAgo(ts){
+  if(!ts)return''; const d=Date.now()-ts;
+  if(d<60000)return'just now'; if(d<3600000)return Math.floor(d/60000)+'m ago';
+  if(d<86400000)return Math.floor(d/3600000)+'h ago'; return Math.floor(d/86400000)+'d ago';
+}
+
+function renderGrid(){
+  const wrap=document.getElementById('gridWrap'); let html='';
+  for(const loc of LOC_ORDER){
+    if(!pm[loc])continue;
+    const st=LOC_STYLES[loc]||{bg:'#374151',text:'#fff'};
+    const entries=sortP(Object.entries(pm[loc]));
+    html+=`<div class="loc-section"><div class="loc-header" style="background:${st.bg};"><div class="loc-title" style="color:${st.text}">${loc}</div>`;
+    for(let i=0;i<5;i++)html+=`<div class="day-col-header" style="color:${st.text}">${DAY_LABELS[i]}</div>`;
+    html+=`</div><div class="provider-rows">`;
+    for(const[name,info]of entries){
+      const isMe=(name===selName);
+      let badge='';
+      if(info.tier==='fellow')badge=`<span class="prov-tier-badge tier-fellow">Fellow</span>`;
+      else if(info.tier==='lac')badge=`<span class="prov-tier-badge tier-lac">Acupuncturist</span>`;
+      const myTs=Object.entries(overrides).filter(([k])=>k.startsWith(name+'||')).reduce((mx,[,v])=>Math.max(mx,v._updatedAt||0),0);
+      const lus=myTs?`<span class="last-updated">Updated ${timeAgo(myTs)}</span>`:'';
+      html+=`<div class="provider-row${isMe?' is-me':''}" data-name="${esc(name)}">`;
+      html+=`<div class="provider-name"><span class="prov-name-line">${esc2(name)}</span><span class="prov-cred">${esc2(info.cred)}${badge}</span>${lus}</div>`;
+      if(isBlocked(name)){
+        const lbl=BLOCKED_LABEL[name]||('blocked until '+BLOCKED_UNTIL[name]);
+        html+=`<div class="day-cell blocked-cell" style="grid-column:span 5"><div class="blocked-pill">⚠ DO NOT SCHEDULE — ${lbl}</div></div>`;
+      } else if(isMe){
+        for(const day of DAYS){
+          html+=`<div class="day-cell" style="flex-direction:column;gap:4px;">`;
+          for(const slot of['am','pm']){
+            const val=getVal(name,loc,day,slot);
+            const avail=val.avail, pref=avail&&val.pref;
+            const k=mkey(name,loc,day,slot);
+            const isPend=pending[k]!==undefined;
+            const bc=['slot-btn',avail?(pref?'pref-on':'on'):'',isPend?'pending':''].filter(Boolean).join(' ');
+            html+=`<button class="${bc}" onclick="toggleSlot('${esc(name)}','${esc(loc)}','${day}','${slot}')">${slot.toUpperCase()}</button>`;
+            if(avail)html+=`<span class="pref-toggle" onclick="togglePref('${esc(name)}','${esc(loc)}','${day}','${slot}')">${pref?'★ preferred':'☆ set preferred'}</span>`;
+          }
+          html+=`</div>`;
+        }
+      } else {
+        for(const day of DAYS){
+          const hA=pm[loc]?.[name]?.days?.[day];
+          if(!hA){html+=`<div class="day-cell"><span class="no-avail">—</span></div>`;continue;}
+          html+=`<div class="day-cell">`;
+          for(const slot of['am','pm']){const val=getVal(name,loc,day,slot);if(val.avail)html+=`<span class="avail-slot${val.pref?' pref':''}">${slot.toUpperCase()}</span>`;}
+          html+=`</div>`;
+        }
+      }
+      html+=`</div>`;
+    }
+    html+=`</div></div>`;
+  }
+  wrap.innerHTML=html;
+}
+
+function toggleSlot(n,l,d,s){
+  if(n!==selName||isSaving)return;
+  const k=mkey(n,l,d,s); const cur=getVal(n,l,d,s);
+  pending[k]=cur.avail?{avail:false,pref:false}:{avail:true,pref:false};
+  renderGrid(); scheduleSave();
+}
+function togglePref(n,l,d,s){
+  if(n!==selName||isSaving)return;
+  const k=mkey(n,l,d,s); const cur=getVal(n,l,d,s);
+  if(!cur.avail)return;
+  pending[k]={avail:true,pref:!cur.pref};
+  renderGrid(); scheduleSave();
+}
+function scheduleSave(){clearTimeout(saveTimer); saveTimer=setTimeout(doSave,900);}
+
+async function doSave(){
+  if(isSaving||Object.keys(pending).length===0)return;
+  isSaving=true;
+  document.getElementById('saveBanner').classList.add('visible');
+  const snap={...pending};
+  pending={};
+  try{
+    await Promise.all(Object.entries(snap).map(([k,v])=>{
+      const[np]=k.split('||');
+      return upsertOverride(k, v.avail, v.pref, np);
+    }));
+    // Merge into local state
+    for(const[k,v]of Object.entries(snap)){
+      const[np]=k.split('||');
+      overrides[k]={...v,_updatedBy:np,_updatedAt:Date.now()};
+    }
+    showToast('✓ Saved for everyone','success');
+  } catch(e){
+    pending={...snap};
+    showToast('Could not save — check connection','error');
+    console.error(e);
+  }
+  isSaving=false;
+  document.getElementById('saveBanner').classList.remove('visible');
+  renderGrid();
+}
+
+document.getElementById('providerNoteText').addEventListener('input',()=>{
+  const v=document.getElementById('providerNoteText').value.trim();
+  document.getElementById('btnSubmitNote').disabled=!v||!selName;
+});
+document.getElementById('btnSubmitNote').addEventListener('click',async()=>{
+  const note=document.getElementById('providerNoteText').value.trim();
+  if(!note||!selName)return;
+  const btn=document.getElementById('btnSubmitNote');
+  btn.disabled=true; btn.textContent='Saving…';
+  try{
+    await insertNote(selName, note);
+    document.getElementById('providerNoteText').value='';
+    btn.textContent='Submit Note';
+    showToast('✓ Note submitted!','success');
+  } catch(e){
+    showToast('Could not save note — check connection','error');
+    btn.disabled=false; btn.textContent='Submit Note';
+  }
+});
+
+// ============================================================
+//  Init — load overrides from Supabase
+// ============================================================
+(async()=>{
+  if(!SUPABASE_URL.includes('supabase.co')){
+    document.getElementById('errorBanner').textContent='⚠ Configure your Supabase URL and anon key at the top of this file before using.';
+    document.getElementById('errorBanner').classList.add('visible');
+    document.getElementById('gridWrap').innerHTML='';
+    renderGrid();
+    return;
+  }
+  try{
+    overrides = await loadOverrides();
+    renderGrid();
+  } catch(e){
+    document.getElementById('errorBanner').textContent='Could not load data from Supabase: '+e.message;
+    document.getElementById('errorBanner').classList.add('visible');
+    renderGrid(); // Show static defaults anyway
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
