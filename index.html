@@ -176,6 +176,44 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   .error-banner { background: #FFF1F2; border: 1px solid #FECDD3; border-radius: 8px; margin: 16px 24px; padding: 12px 16px; font-size: 12px; color: #BE123C; display: none; }
   .error-banner.visible { display: block; }
 
+  /* Coordinator tab */
+  .coord-btn { position: fixed; bottom: 20px; right: 20px; background: var(--midnight); color: #fff; border: none; border-radius: 20px; padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3); z-index: 100; opacity: .6; }
+  .coord-btn:hover { opacity: 1; }
+  .coord-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; align-items: center; justify-content: center; }
+  .coord-overlay.visible { display: flex; }
+  .coord-modal { background: var(--surface); border-radius: 12px; padding: 28px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+  .coord-modal h2 { margin: 0 0 16px; font-size: 16px; color: var(--midnight); }
+  .coord-modal input[type=password] { width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 14px; color: var(--fg); background: var(--surface); outline: none; box-sizing: border-box; }
+  .coord-modal input[type=password]:focus { border-color: var(--ucla-blue); }
+  .coord-modal .pw-error { color: #BE123C; font-size: 11px; margin-top: 6px; display: none; }
+  .coord-modal .pw-error.visible { display: block; }
+  .coord-modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+  .btn-cancel-coord { background: none; border: 1.5px solid #d1d5db; border-radius: 6px; padding: 7px 16px; font-size: 12px; cursor: pointer; color: var(--fg); }
+  .btn-unlock-coord { background: var(--midnight); color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-unlock-coord:hover { background: var(--ucla-blue); }
+
+  .coord-panel { display: none; margin: 0 24px 32px; }
+  .coord-panel.visible { display: block; }
+  .coord-panel-header { background: var(--midnight); color: #fff; padding: 12px 18px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between; }
+  .coord-panel-header h3 { margin: 0; font-size: 14px; }
+  .btn-lock { background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
+  .btn-lock:hover { background: rgba(255,255,255,.25); }
+  .coord-tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--sand); }
+  .coord-tab { padding: 9px 18px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--dolphin); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .coord-tab.active { color: var(--midnight); border-bottom-color: var(--midnight); }
+  .coord-tab-content { display: none; background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; padding: 16px; }
+  .coord-tab-content.active { display: block; }
+  .coord-note-item { border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; }
+  .coord-note-meta { font-size: 11px; color: var(--dolphin); margin-bottom: 4px; }
+  .coord-note-name { font-weight: 700; color: var(--midnight); }
+  .coord-note-text { font-size: 13px; color: var(--fg); line-height: 1.5; }
+  .coord-change-item { font-size: 11.5px; color: var(--fg); padding: 5px 0; border-bottom: 1px solid #f3f4f6; display: flex; gap: 10px; align-items: baseline; }
+  .coord-change-item:last-child { border-bottom: none; }
+  .coord-change-name { font-weight: 600; min-width: 130px; }
+  .coord-change-detail { flex: 1; color: var(--dolphin); }
+  .coord-change-time { font-size: 10px; color: #9ca3af; white-space: nowrap; }
+  .coord-empty { color: var(--dolphin); font-size: 13px; padding: 20px 0; text-align: center; }
+
   @media (max-width: 700px) {
     .loc-header, .provider-row { grid-template-columns: 120px repeat(5,1fr); }
     .loc-title, .provider-name { padding: 6px 8px; }
@@ -250,6 +288,35 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     </div>
   </div>
 </div>
+
+<!-- Coordinator panel -->
+<div class="coord-panel" id="coordPanel">
+  <div class="coord-panel-header">
+    <h3>🔐 Coordinator View</h3>
+    <button class="btn-lock" onclick="lockCoord()">Lock</button>
+  </div>
+  <div class="coord-tabs">
+    <div class="coord-tab active" onclick="switchCoordTab('notes',this)">Provider Notes</div>
+    <div class="coord-tab" onclick="switchCoordTab('changes',this)">Recent Changes</div>
+  </div>
+  <div class="coord-tab-content active" id="coordTabNotes"><div class="coord-empty">Loading…</div></div>
+  <div class="coord-tab-content" id="coordTabChanges"><div class="coord-empty">Loading…</div></div>
+</div>
+
+<!-- Password modal -->
+<div class="coord-overlay" id="coordOverlay">
+  <div class="coord-modal">
+    <h2>🔐 Coordinator Access</h2>
+    <input type="password" id="coordPwInput" placeholder="Enter coordinator password" autocomplete="current-password">
+    <div class="pw-error" id="pwError">Incorrect password. Try again.</div>
+    <div class="coord-modal-btns">
+      <button class="btn-cancel-coord" onclick="closeCoordModal()">Cancel</button>
+      <button class="btn-unlock-coord" onclick="tryUnlock()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<button class="coord-btn" onclick="openCoordModal()">🔐 Coordinator</button>
 
 <div class="toast" id="toast"></div>
 <div class="save-banner" id="saveBanner">💾 Saving…</div>
@@ -487,6 +554,80 @@ document.getElementById('btnSubmitNote').addEventListener('click',async()=>{
     btn.disabled=false; btn.textContent='Submit Note';
   }
 });
+
+// ============================================================
+//  Coordinator view
+// ============================================================
+const COORD_PW_HASH = 'db4b87c060f190ed65416288b8940ca326059e46c08e2370dc442f8bb19f19de'; // sha256 of 'Uclacewm'
+
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function openCoordModal(){
+  document.getElementById('coordOverlay').classList.add('visible');
+  document.getElementById('coordPwInput').value='';
+  document.getElementById('pwError').classList.remove('visible');
+  setTimeout(()=>document.getElementById('coordPwInput').focus(),50);
+}
+function closeCoordModal(){
+  document.getElementById('coordOverlay').classList.remove('visible');
+}
+document.getElementById('coordPwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+
+async function tryUnlock(){
+  const val=document.getElementById('coordPwInput').value;
+  const hash=await sha256(val);
+  if(hash===COORD_PW_HASH){
+    closeCoordModal();
+    document.getElementById('coordPanel').classList.add('visible');
+    document.getElementById('coordPanel').scrollIntoView({behavior:'smooth',block:'start'});
+    loadCoordData();
+  } else {
+    document.getElementById('pwError').classList.add('visible');
+    document.getElementById('coordPwInput').select();
+  }
+}
+function lockCoord(){
+  document.getElementById('coordPanel').classList.remove('visible');
+}
+function switchCoordTab(tab, el){
+  document.querySelectorAll('.coord-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.coord-tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tab==='notes'?'coordTabNotes':'coordTabChanges').classList.add('active');
+}
+
+async function loadCoordData(){
+  // Load submitted notes
+  try{
+    const notes=await sbFetch('notes?select=name,note,submitted_at&order=submitted_at.desc', {headers:{'Prefer':'return=representation'}});
+    const wrap=document.getElementById('coordTabNotes');
+    if(!notes||notes.length===0){wrap.innerHTML='<div class="coord-empty">No notes submitted yet.</div>';return;}
+    wrap.innerHTML=notes.map(n=>`
+      <div class="coord-note-item">
+        <div class="coord-note-meta"><span class="coord-note-name">${esc2(n.name)}</span> · ${timeAgo(n.submitted_at)}</div>
+        <div class="coord-note-text">${esc2(n.note)}</div>
+      </div>`).join('');
+  }catch(e){document.getElementById('coordTabNotes').innerHTML='<div class="coord-empty">Could not load notes.</div>';}
+
+  // Load recent changes from overrides
+  try{
+    const rows=await sbFetch('overrides?select=key,avail,pref,updated_by,updated_at&order=updated_at.desc&limit=50', {headers:{'Prefer':'return=representation'}});
+    const wrap=document.getElementById('coordTabChanges');
+    if(!rows||rows.length===0){wrap.innerHTML='<div class="coord-empty">No changes recorded yet.</div>';return;}
+    wrap.innerHTML=rows.map(r=>{
+      const[name,,day,slot]=r.key.split(/\|\||[|]/);
+      const status=r.avail?(r.pref?'✦ preferred':'✓ available'):'✗ unavailable';
+      return`<div class="coord-change-item">
+        <span class="coord-change-name">${esc2(r.updated_by||name)}</span>
+        <span class="coord-change-detail">${esc2(day||'')} ${esc2(slot||'')} → ${status}</span>
+        <span class="coord-change-time">${timeAgo(r.updated_at)}</span>
+      </div>`;
+    }).join('');
+  }catch(e){document.getElementById('coordTabChanges').innerHTML='<div class="coord-empty">Could not load changes.</div>';}
+}
 
 // ============================================================
 //  Init — load overrides from Supabase
